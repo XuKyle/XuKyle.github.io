@@ -1,0 +1,182 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const entries = await getCollection('bookmarks');
+
+const categoryOrder = ['动作 / 对战', '竞速', '卡牌 / 策略', 'Roguelike / 构筑', '艺术 / 知识'];
+const allCategories = [...new Set(entries.map((entry) => entry.data.category))];
+const categories = allCategories.sort((a, b) => {
+  const ai = categoryOrder.indexOf(a);
+  const bi = categoryOrder.indexOf(b);
+  return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+});
+
+const tagCounts = new Map<string, number>();
+for (const entry of entries) {
+  for (const tag of entry.data.tags) tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+}
+const tags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+
+const quotes = [
+  { text: '行到水穷处，坐看云起时。', author: '王维', work: '《终南别业》' },
+  { text: '明月松间照，清泉石上流。', author: '王维', work: '《山居秋暝》' },
+  { text: '晚来天欲雪，能饮一杯无。', author: '白居易', work: '《问刘十九》' },
+  { text: '此心安处是吾乡。', author: '苏轼', work: '《定风波》' },
+  { text: '采菊东篱下，悠然见南山。', author: '陶渊明', work: '《饮酒·其五》' },
+  { text: '蝉噪林逾静，鸟鸣山更幽。', author: '王籍', work: '《入若耶溪》' },
+  { text: '春水碧于天，画船听雨眠。', author: '韦庄', work: '《菩萨蛮》' },
+  { text: '人间有味是清欢。', author: '苏轼', work: '《浣溪沙》' },
+];
+
+const pending = entries.filter((entry) => entry.data.status === 'pending').length;
+
+const searchText = (entry: (typeof entries)[number]) =>
+  [entry.data.title, entry.data.description, entry.data.category, entry.data.tags.join(' ')]
+    .join(' ')
+    .toLowerCase();
+---
+
+<BaseLayout
+  title="收藏 · Kyle Xu"
+  description="按类型整理的常用链接：动作对战、竞速、卡牌策略、Roguelike 与艺术知识。"
+>
+  <header class="top">
+    <span class="brand">KX / 收藏</span>
+    <nav aria-label="分类导航">
+      {categories.map((category) => (
+        <a href={`#cat-${category.replace(/[^\p{Letter}\p{Number}]+/gu, '-')}`}>{category}</a>
+      ))}
+    </nav>
+  </header>
+
+  <div class="wrap">
+    <section class="hero">
+      <div>
+        <span class="mono">BOOKMARKS · {entries.length} LINKS</span>
+        <h1>收藏的链接，<br />按类型排好。</h1>
+        <p class="lead">
+          把常用的小站按类型整理成目录：动作对战、竞速、卡牌策略、Roguelike 和艺术知识。点任意一条在新标签打开。
+        </p>
+      </div>
+      <div>
+        <p class="quote" id="hero-quote"></p>
+        <p class="credit" id="hero-credit"></p>
+      </div>
+    </section>
+
+    <div class="controls">
+      <label class="mono" for="search" style="flex-basis:100%">SEARCH</label>
+      <input
+        class="search"
+        id="search"
+        type="search"
+        placeholder="搜索名称、类型或标签…"
+        aria-label="搜索收藏"
+        autocomplete="off"
+      />
+      <div class="tags" id="tag-filter" role="group" aria-label="按标签筛选">
+        <button class="tag-btn" type="button" data-tag="" aria-pressed="true">全部<span>{entries.length}</span></button>
+        {tags.map(([tag, count]) => (
+          <button class="tag-btn" type="button" data-tag={tag} aria-pressed="false">
+            #{tag}<span>{count}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+
+    {categories.map((category) => {
+      const items = entries.filter((entry) => entry.data.category === category);
+      const slug = category.replace(/[^\p{Letter}\p{Number}]+/gu, '-');
+      return (
+        <section class="cat" id={`cat-${slug}`} data-category-section>
+          <div class="cat-head">
+            <h2>{category}</h2>
+            <span class="mono">{items.length} LINKS</span>
+          </div>
+          <div class="cards">
+            {items.map((entry, index) => (
+              <a
+                class="card"
+                href={entry.data.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-search={searchText(entry)}
+                data-tags={JSON.stringify(entry.data.tags)}
+              >
+                <span class="no">{String(index + 1).padStart(2, '0')}</span>
+                <span class="body">
+                  <span class="meta">
+                    <span>{category}</span>
+                    {entry.data.status === 'pending' && <span class="badge">待核实</span>}
+                  </span>
+                  <h3>{entry.data.title}</h3>
+                  <p>{entry.data.description}</p>
+                  {entry.data.note && <p class="note">{entry.data.note}</p>}
+                  <span class="chips">
+                    {entry.data.tags.map((tag) => <span class="tag">#{tag}</span>)}
+                  </span>
+                </span>
+                <span class="go">打开 ↗</span>
+              </a>
+            ))}
+          </div>
+        </section>
+      );
+    })}
+
+    <p class="empty" id="empty">没有匹配的收藏，换个关键词或清除标签试试。</p>
+
+    <footer class="foot">
+      <span>KYLE XU · BOOKMARKS</span>
+      <span>{pending} 条待核实 · 更新于 {String(entries.length ? '2026-10-09' : '')}</span>
+    </footer>
+  </div>
+
+  <script define:vars={{ quotes }}>
+    const quoteEl = document.getElementById('hero-quote');
+    const creditEl = document.getElementById('hero-credit');
+    if (quoteEl && creditEl && quotes.length) {
+      const pick = quotes[Math.floor(Math.random() * quotes.length)];
+      quoteEl.textContent = pick.text;
+      creditEl.textContent = `— ${pick.author} · ${pick.work}`;
+    }
+
+    const search = document.getElementById('search');
+    const tagFilter = document.getElementById('tag-filter');
+    const empty = document.getElementById('empty');
+    let activeTag = '';
+
+    function applyFilter() {
+      const query = (search?.value ?? '').trim().toLowerCase();
+      const cards = document.querySelectorAll('.card');
+      let visible = 0;
+      cards.forEach((card) => {
+        const text = card.getAttribute('data-search') ?? '';
+        const tags = JSON.parse(card.getAttribute('data-tags') ?? '[]');
+        const matchesQuery = query === '' || text.includes(query);
+        const matchesTag = activeTag === '' || tags.includes(activeTag);
+        const show = matchesQuery && matchesTag;
+        card.classList.toggle('is-hidden', !show);
+        if (show) visible += 1;
+      });
+      document.querySelectorAll('[data-category-section]').forEach((section) => {
+        const hasVisible = section.querySelector('.card:not(.is-hidden)');
+        section.classList.toggle('is-hidden', !hasVisible);
+      });
+      if (empty) empty.style.display = visible === 0 ? 'block' : 'none';
+    }
+
+    tagFilter?.addEventListener('click', (event) => {
+      const button = event.target.closest('.tag-btn');
+      if (!button) return;
+      activeTag = button.getAttribute('data-tag') ?? '';
+      tagFilter.querySelectorAll('.tag-btn').forEach((item) => {
+        item.setAttribute('aria-pressed', String(item === button));
+      });
+      applyFilter();
+    });
+
+    search?.addEventListener('input', applyFilter);
+  </script>
+</BaseLayout>

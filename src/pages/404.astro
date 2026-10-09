@@ -1,0 +1,22 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="页面未找到 · Kyle Xu" description="没有找到这个页面。">
+  <header class="top">
+    <span class="brand">KX / 收藏</span>
+    <nav aria-label="导航"><a href="/">返回首页</a></nav>
+  </header>
+  <div class="wrap">
+    <section class="hero">
+      <div>
+        <span class="mono">404 · NOT FOUND</span>
+        <h1>这里没有内容。</h1>
+        <p class="lead">页面可能已被移动或删除。回到首页可以继续浏览收藏的链接。</p>
+      </div>
+      <div>
+        <a class="go" href="/" style="font-family:var(--mono);color:var(--accent)">← 返回首页</a>
+      </div>
+    </section>
+  </div>
+</BaseLayout>
