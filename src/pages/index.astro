@@ -15,7 +15,7 @@ const modules = import.meta.glob('./posts/*.md', { eager: true }) as Record<stri
 const posts = Object.entries(modules)
   .map(([path, post]) => ({
     ...post.frontmatter,
-    url: path.replace('./posts/', '/posts/').replace(/\\.md$/, '/'),
+    url: `/posts/${path.split('/').pop()?.slice(0, -3)}/`,
     pubDate: new Date(post.frontmatter.pubDate),
     tags: post.frontmatter.tags ?? [],
   }))
